@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"commint_lint_jira","l":"CommitLintJiraPlugin"},{"p":"commint_lint_jira","l":"CommitLintJiraPluginTask"},{"p":"commint_lint_jira.rest","l":"CommitLintJiraRest"},{"p":"commint_lint_jira.dto","l":"CommitLintJiraRestModel"},{"p":"commint_lint_jira.rest","l":"CustomHttpClientResponseHandler"}]

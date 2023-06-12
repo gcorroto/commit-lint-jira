@@ -1,0 +1,11 @@
+-classpath 'C:\\work_sol\\commit_lint\\commint_lint_jira\\plugin\\build\\classes\\java\\main;C:\\work_sol\\commit_lint\\commint_lint_jira\\plugin\\build\\resources\\main;C:\\Users\\gcorroto\\.gradle\\caches\\7.0.2\\generated-gradle-jars\\gradle-api-7.0.2.jar;C:\\gradle-7.0.2\\lib\\groovy-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-ant-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-astbuilder-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-console-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-datetime-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-dateutil-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-groovydoc-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-json-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-nio-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-sql-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-templates-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-test-3.0.7.jar;C:\\gradle-7.0.2\\lib\\groovy-xml-3.0.7.jar;C:\\gradle-7.0.2\\lib\\javaparser-core-3.17.0.jar;C:\\gradle-7.0.2\\lib\\kotlin-stdlib-1.4.31.jar;C:\\gradle-7.0.2\\lib\\kotlin-stdlib-common-1.4.31.jar;C:\\gradle-7.0.2\\lib\\kotlin-stdlib-jdk7-1.4.31.jar;C:\\gradle-7.0.2\\lib\\kotlin-stdlib-jdk8-1.4.31.jar;C:\\gradle-7.0.2\\lib\\kotlin-reflect-1.4.31.jar;C:\\gradle-7.0.2\\lib\\gradle-installation-beacon-7.0.2.jar'
+-d 'C:\\work_sol\\commit_lint\\commint_lint_jira\\plugin\\build\\docs\\javadoc'
+-doctitle 'plugin 1.0.0 API'
+-notimestamp 
+-quiet 
+-windowtitle 'plugin 1.0.0 API'
+'C:\\work_sol\\commit_lint\\commint_lint_jira\\plugin\\src\\main\\java\\commint_lint_jira\\CommitLintJiraPlugin.java'
+'C:\\work_sol\\commit_lint\\commint_lint_jira\\plugin\\src\\main\\java\\commint_lint_jira\\CommitLintJiraPluginTask.java'
+'C:\\work_sol\\commit_lint\\commint_lint_jira\\plugin\\src\\main\\java\\commint_lint_jira\\dto\\CommitLintJiraRestModel.java'
+'C:\\work_sol\\commit_lint\\commint_lint_jira\\plugin\\src\\main\\java\\commint_lint_jira\\rest\\CommitLintJiraRest.java'
+'C:\\work_sol\\commit_lint\\commint_lint_jira\\plugin\\src\\main\\java\\commint_lint_jira\\rest\\CustomHttpClientResponseHandler.java'
