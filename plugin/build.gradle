@@ -8,57 +8,47 @@
 
 plugins {
     // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
-    id 'java-gradle-plugin'
-		id("com.gradle.plugin-publish") version "1.2.0"
+    // id 'java-gradle-plugin'
+		id "com.gradle.plugin-publish" version "1.2.0"
 
 }
 //apply plugin: 'commitlintPlugin'
 
-// publishing {
-//   publications {
-//     maven(MavenPublication) {
-//       groupId = "com.greco"
-//       artifactId = "commitlintjira"
-//       version = "${project.version}"
-
-//       from components.java
-//     }
-//   }
-//   repositories {
-//     mavenLocal()
-//   }
-// }
-
 repositories {
-    // Use Maven Central for resolving dependencies.
-    mavenCentral()
+	maven {
+		url "https://plugins.gradle.org/m2/"
+	}
 }
+apply plugin: "com.gradle.plugin-publish"
 // The project version will be used as your plugin version when publishing.
-version = "1.0.0"
+version = "1.0.1"
 group = "com.greco"
 
 dependencies {
     // Use JUnit test framework for unit tests
+		implementation "com.gradle.publish:plugin-publish-plugin:1.2.0"
     testImplementation 'junit:junit:4.13.1'
+		
 }
 
 
 gradlePlugin {
-    // Define the plugin
-		website = 'https://github.com/gcorroto/commit-lint-jira'
+    website = 'https://github.com/gcorroto/commit-lint-jira'
     vcsUrl = 'https://github.com/gcorroto/commit-lint-jira.git'
     plugins {
-        commitlintPlugin {
-            id = 'com.greco.commitlintjira'
-						displayName = "commitlint plugin for jira"
-            description = "Simple commitlint plugin for Gradle/jira"
-            implementationClass = 'commint_lint_jira.CommitLintJiraPlugin'
-        }
+        // commitlintPlugin {
+        //     id = 'com.greco.commitlintjira'
+				// 		displayName = "commitlint plugin for jira"
+        //     description = "Simple commitlint plugin for Gradle/jira"
+        //     implementationClass = 'commint_lint_jira.CommitLintJiraPlugin'
+        // }
+				
 				 create("CommitLintJiraPlugin") {
 					id = "com.greco.commitlintjira"
 					implementationClass = 'commint_lint_jira.CommitLintJiraPlugin'
 					displayName = "commitlint plugin for jira"
           description = "Simple commitlint plugin for Gradle/jira"
+					tags.set(['search', 'tags', 'jira', 'java'])
 				}
     }
 }
