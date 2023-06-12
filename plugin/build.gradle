@@ -45,6 +45,8 @@ dependencies {
 
 gradlePlugin {
     // Define the plugin
+		website = 'https://github.com/gcorroto/commit-lint-jira'
+    vcsUrl = 'https://github.com/gcorroto/commit-lint-jira.git'
     plugins {
         commitlintPlugin {
             id = 'com.greco.commitlintjira'
