@@ -91,7 +91,14 @@ private final Logger log = LoggerFactory.getLogger(this.getClass());
 			
 			ResponseJiraDto response = rest.getInfoJira(keyJira);
 			if(response!=null) {
-				System.out.println("Successfully completed sample Task infoJira " + response.toString());
+				String estado = response.getFields().getStatus().getName();
+				System.out.println("Estado de la tarea " +keyJira+ " = "+ estado);
+				if(estado.equalsIgnoreCase("WIP")){
+					System.out.println("Successfully completed sample Task infoJira " + response.toString());
+				} else {
+					throw new Exception("La tarea " +keyJira+ " no se encuentra en estado WIP se encuentra en " + estado);
+				}
+				
 			} else {
 				log.error("Successfully completed sample Task infoJira but response is NULL WITH KEY "+ keyJira);
 			}
