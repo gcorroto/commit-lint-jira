@@ -5,51 +5,108 @@
  * For more details take a look at the Writing Custom Plugins chapter in the Gradle
  * User Manual available at https://docs.gradle.org/7.0.2/userguide/custom_plugins.html
  */
+buildscript {
+ 	repositories {
+			mavenCentral()
+			jcenter()
+			google()
+	}
+	dependencies {
+			classpath 'org.apache.httpcomponents:httpclient:4.5.13'
+			classpath 'org.apache.commons:commons-lang3:3.12.0'
+	}
+
+}
+
 
 plugins {
-    // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
-    // id 'java-gradle-plugin'
-		id "com.gradle.plugin-publish" version "1.2.0"
+			// Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
+			id 'java-gradle-plugin'
+			id "com.gradle.plugin-publish" version "1.2.0"
+			id 'groovy'
+			id 'java'
+			id 'maven-publish'
 
-}
-//apply plugin: 'commitlintPlugin'
-
-repositories {
-	maven {
-		url "https://plugins.gradle.org/m2/"
 	}
-}
-apply plugin: "com.gradle.plugin-publish"
-// The project version will be used as your plugin version when publishing.
-version = "1.0.1"
-group = "com.greco"
-
+	
 dependencies {
-    // Use JUnit test framework for unit tests
-		implementation "com.gradle.publish:plugin-publish-plugin:1.2.0"
-    testImplementation 'junit:junit:4.13.1'
-		
-}
+			implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+			implementation 'org.apache.commons:commons-lang3:3.12.0'
+			implementation "com.gradle.publish:plugin-publish-plugin:1.2.0"
+			implementation "com.fasterxml.jackson.core:jackson-databind:2.14.1"
+			testImplementation 'junit:junit:4.13.1'
+			implementation fileTree(dir: 'libs', include: ['*.jar'])
+			implementation gradleApi()
+			
+	}
+	//apply plugin: 'commitlintPlugin'
+
+	repositories {
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+	}
+	apply plugin: "com.gradle.plugin-publish"
+	apply plugin: 'java'
+	apply plugin: 'groovy'
+	apply plugin: 'maven-publish'
+	// The project version will be used as your plugin version when publishing.
+	version = "1.0.4"
+	group = "com.greco"
 
 
-gradlePlugin {
-    website = 'https://github.com/gcorroto/commit-lint-jira'
-    vcsUrl = 'https://github.com/gcorroto/commit-lint-jira.git'
-    plugins {
-        // commitlintPlugin {
-        //     id = 'com.greco.commitlintjira'
-				// 		displayName = "commitlint plugin for jira"
-        //     description = "Simple commitlint plugin for Gradle/jira"
-        //     implementationClass = 'commint_lint_jira.CommitLintJiraPlugin'
-        // }
-				
-				 create("CommitLintJiraPlugin") {
-					id = "com.greco.commitlintjira"
-					implementationClass = 'commint_lint_jira.CommitLintJiraPlugin'
-					displayName = "commitlint plugin for jira"
-          description = "Simple commitlint plugin for Gradle/jira"
-					tags.set(['search', 'tags', 'jira', 'java'])
-				}
-    }
-}
+	publishing {
+			publications {
+					maven(MavenPublication) {
+							from project.components.java
+					}
+			}
+	}
 
+	
+	project.afterEvaluate {
+			publishing {
+					publications {
+							library(MavenPublication) {
+									//setGroupId groupId
+									setGroupId "com.greco"
+									//setArtifactId artifactId
+									setArtifactId "commitlintjira"
+									version "1.0.1"
+
+	/* add a dependency into generated .pom file
+									pom.withXml {
+											def dependenciesNode = asNode().appendNode('dependencies')
+											def dependencyNode = dependenciesNode.appendNode('dependency')
+											dependencyNode.appendNode('groupId', 'com.company')
+											dependencyNode.appendNode('artifactId', 'HelloWorld-core')
+											dependencyNode.appendNode('version', '1.1')
+
+									}
+	*/
+							}
+					}
+			}
+	}
+
+// ./gradlew publishToMavenLocal
+	gradlePlugin {
+			website = 'https://github.com/gcorroto/commit-lint-jira'
+			vcsUrl = 'https://github.com/gcorroto/commit-lint-jira.git'
+			plugins {
+					commitlintPlugin {
+							id = 'com.greco.commitlintjira'
+							displayName = "commitlint plugin for jira"
+							description = "Simple commitlint plugin for Gradle/jira"
+							implementationClass = 'commint_lint_jira.CommitLintJiraPlugin'
+					}
+					
+					create("CommitLintJiraPlugin") {
+						id = "com.greco.commitlintjira"
+						implementationClass = 'commint_lint_jira.CommitLintJiraPlugin'
+						displayName = "commitlint plugin for jira"
+						description = "Simple commitlint plugin for Gradle/jira"
+						tags.set(['search', 'tags', 'jira', 'java'])
+					}
+			}
+	}

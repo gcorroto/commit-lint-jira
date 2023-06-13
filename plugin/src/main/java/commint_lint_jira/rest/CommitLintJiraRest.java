@@ -4,15 +4,34 @@
 package commint_lint_jira.rest;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 
-import org.gradle.internal.impldep.org.apache.http.client.methods.CloseableHttpResponse;
-import org.gradle.internal.impldep.org.apache.http.client.methods.HttpGet;
-import org.gradle.internal.impldep.org.apache.http.impl.client.BasicCookieStore;
-import org.gradle.internal.impldep.org.apache.http.impl.client.CloseableHttpClient;
-import org.gradle.internal.impldep.org.apache.http.impl.client.HttpClientBuilder;
-import org.gradle.internal.impldep.org.apache.http.impl.cookie.BasicClientCookie;
+import javax.net.ssl.SSLContext;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.VisibilityChecker;
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.ssl.SSLContexts;
 
 import commint_lint_jira.dto.CommitLintJiraRestModel;
+import commint_lint_jira.dto.ResponseJiraDto;
 
 /**
  * A simple 'hello world' plugin.
@@ -20,46 +39,145 @@ import commint_lint_jira.dto.CommitLintJiraRestModel;
 public class CommitLintJiraRest  {
 
 	private CommitLintJiraRestModel model;
-  final BasicCookieStore cookieStore = new BasicCookieStore();
+  private CookieStore cookieStore = new BasicCookieStore();
 
 	static final String AUTH_PATH = "/rest/auth/latest/session";
 	static final String JIRA_PATH = "/rest/api/latest/issue/";
-
+	private HttpClient httpClient = null;
+	private Cookie cookieAuth = null;
+	private Cookie cookieSession = null;
+	private HttpClientContext context = null;
+	private static String classStaticSessionID = "";
 	public CommitLintJiraRest(CommitLintJiraRestModel model) {
 		this.model=model;
 	}
 
 	public boolean authJira() throws IOException {
     
-    final BasicClientCookie cookie = new BasicClientCookie(model.getUser(), model.getPassword());
+    BasicClientCookie cookie = new BasicClientCookie(model.getUser(), model.getPassword());
     cookie.setDomain(model.getDomain());
     cookie.setAttribute("domain", "true");
     cookie.setPath("/");
     cookieStore.addCookie(cookie);
-    final HttpGet request = new HttpGet(model.getUrl()+AUTH_PATH);
+		configClient();
+		String url = model.getUrl() + AUTH_PATH;
+		System.out.println("url auth " + url);
+    final HttpGet request = new HttpGet(url);
 
-    try (CloseableHttpClient client = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build();
-        CloseableHttpResponse response = (CloseableHttpResponse) client.execute(request)) {
-							System.out.println(response.getEntity().getContent().toString());
-							return true;
-    		}catch(Exception e) {
-					System.out.println(e);
-						return false;
-				}
+    try  {
+			context = HttpClientContext.create();
+			context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
+		
+			// CloseableHttpResponse response = (CloseableHttpResponse) httpClient.execute(request,  context);
+			CloseableHttpResponse responseHttp = (CloseableHttpResponse)httpClient.execute(request,  context);
+			// this.parseSessionID(responseHttp);
+
+			cookieStore = context.getCookieStore();
+    	cookieAuth = cookieStore.getCookies()
+        .stream()
+        .peek(cook -> System.out.println("cookie name: " + cook.getName()))
+        .filter(cook -> "atlassian.xsrf.token".equals(cook.getName()))
+        .findFirst().get();
+
+				// cookieSession = cookieStore.getCookies()
+        // .stream()
+        // .peek(cook -> System.out.println("cookie name: " + cook.getName()))
+        // .filter(cook -> "JSESSIONID".equals(cook.getName()))
+        // .findFirst().get();
+
+				System.out.println(responseHttp.getEntity().getContent().toString());
+
+				// httpClient.close();
+				responseHttp.getEntity().getContent().close();
+
+				return true;
+			}catch(Exception e) {
+				System.out.println(e);
+					return false;
+			}
 
 	}
 
-	public String getInfoJira(String jira) throws IOException {
-    String responseString = "";
-    final HttpGet request = new HttpGet(model.getUrl() + JIRA_PATH + jira);
+	public ResponseJiraDto getInfoJira(String jira) throws IOException {
+		// cookieStore = new BasicCookieStore();
+		// cookieStore.addCookie(cookieAuth);
+		if(classStaticSessionID!=null && !classStaticSessionID.equals("")) {
+			System.out.println("JSESSIONID: " + classStaticSessionID);
+			Cookie cookSession = new BasicClientCookie("JSESSIONID", classStaticSessionID);
+			cookieStore.addCookie(cookSession);
+		}
 
-    try (CloseableHttpClient client = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build();
-        CloseableHttpResponse response = (CloseableHttpResponse) client.execute(request)) {
-					responseString = response.getEntity().getContent().toString();
-					System.out.println(responseString);
+    ResponseJiraDto responseJiraDto =null;
+		String url = model.getUrl() + JIRA_PATH + jira;
+		System.out.println("url issue " + url);
+
+		String urlLogin = model.getUrl() + AUTH_PATH;
+		System.out.println("urlLogin auth " + urlLogin);
+    final HttpGet requestLogin = new HttpGet(urlLogin);
+
+
+    final HttpGet request = new HttpGet(url);
+		ObjectMapper objectMapper = new ObjectMapper();
+		objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+		objectMapper.setVisibility(VisibilityChecker.Std.defaultInstance().withFieldVisibility(JsonAutoDetect.Visibility.ANY));
+    try {
+			CloseableHttpResponse responseLogin = (CloseableHttpResponse) httpClient.execute(requestLogin, context);	
+			responseLogin.getEntity().getContent().close();
+			CloseableHttpResponse response =  (CloseableHttpResponse) httpClient.execute(request, context);
+					// responseString = response.getEntity().getContent().toString();
+					// System.out.println(responseString);
+					InputStream stream = response.getEntity().getContent();
+					
+					// ObjectInputStream ois = new ObjectInputStream(stream);
+					responseJiraDto = objectMapper.readValue(stream, ResponseJiraDto.class);
+					response.getEntity().getContent().close();
+					// System.out.println("READ STATUS JIRA " + responseJiraDto.getFields().getStatus().getName());
     		}catch(Exception e) {
 					System.out.println(e);
 				}
-		return responseString;
+		return responseJiraDto;
+	}
+
+	private void configClient() {
+try {
+			SSLContext sslContext= SSLContexts.custom()
+				  .loadTrustMaterial((chain, authType) -> true).build();
+			
+
+			SSLConnectionSocketFactory sslConnectionSocketFactory =
+							new SSLConnectionSocketFactory(sslContext, new String[]
+							{"SSLv2Hello", "SSLv3", "TLSv1","TLSv1.1", "TLSv1.2" }, null,
+							NoopHostnameVerifier.INSTANCE);
+			httpClient = HttpClients.custom()
+							.setSSLSocketFactory(sslConnectionSocketFactory)
+							.setDefaultCookieStore(cookieStore)
+							.build();	
+			} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+				System.out.println(e);
+			}
+	}
+
+	private void parseSessionID(HttpResponse response) {
+    try {
+
+        Header header = response.getFirstHeader("Set-Cookie");
+
+        String value = header.getValue();
+        if (value.contains("JSESSIONID")) {
+            int index = value.indexOf("JSESSIONID=");
+
+            int endIndex = value.indexOf(";", index);
+
+            String sessionID = value.substring(
+                    index + "JSESSIONID=".length(), endIndex);
+
+						System.out.println("sessionID " + sessionID);
+            if (sessionID != null) {
+                classStaticSessionID= sessionID;
+            }
+
+        }
+    } catch (Exception e) {
+    }
 	}
 }

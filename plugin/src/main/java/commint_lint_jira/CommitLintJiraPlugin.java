@@ -3,16 +3,9 @@
  */
 package commint_lint_jira;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Map;
-
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.Task;
-import commint_lint_jira.dto.CommitLintJiraRestModel;
+import org.gradle.api.provider.Property;
 
 /**
  * A simple 'hello world' plugin.
@@ -20,8 +13,16 @@ import commint_lint_jira.dto.CommitLintJiraRestModel;
 public class CommitLintJiraPlugin implements Plugin<Project> {
     public void apply(Project project) {
         // Register a task
-       project.getExtensions().create("commitlintPlugin",CommitLintJiraRestModel.class);
+       CommitLintJiraRestModel extension = project.getExtensions().create("commitlintPlugin",CommitLintJiraRestModel.class);
+
+			  project.getTasks().register("validateCommitMessage", CommitLintJiraPluginTask.class, task -> {
+            task.getUser().set(extension.getUser());
+            task.getPassword().set(extension.getPassword());
+						task.getDomain().set(extension.getDomain());
+						task.getUrl().set(extension.getUrl());
+        });
     }
+		
 
 
 		// project.getTasks().create("commitlint",CommitLintJiraRestModel.class, task -> {
@@ -46,5 +47,14 @@ public class CommitLintJiraPlugin implements Plugin<Project> {
 		// 					// println("commitlint finished successfully")
 		// 				});
     //     });
+
+}
+
+interface  CommitLintJiraRestModel  {
+
+	Property<String> getUser();
+	Property<String> getPassword();
+	Property<String> getDomain();
+	Property<String> getUrl();
 
 }
