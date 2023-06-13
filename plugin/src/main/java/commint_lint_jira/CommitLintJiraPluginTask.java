@@ -3,151 +3,178 @@
  */
 package commint_lint_jira;
 
+import commint_lint_jira.dto.CommitLintJiraRestModel;
+import commint_lint_jira.dto.ResponseJiraDto;
+import commint_lint_jira.rest.CommitLintJiraRest;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Scanner;
-
+import org.apache.commons.lang3.StringUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.TaskExecutionException;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import commint_lint_jira.dto.CommitLintJiraRestModel;
-import commint_lint_jira.dto.ResponseJiraDto;
-import commint_lint_jira.rest.CommitLintJiraRest;
 
 /**
  * A simple 'hello world' plugin.
  */
-abstract public class CommitLintJiraPluginTask  extends DefaultTask {
+public abstract class CommitLintJiraPluginTask extends DefaultTask {
 
-private final Logger log = LoggerFactory.getLogger(this.getClass());
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-	@Input
-	abstract public Property<String> getUser();
+  @Input
+  public abstract Property<String> getUser();
 
-	@Input
-	abstract public Property<String> getPassword();
+  @Input
+  public abstract Property<String> getPassword();
 
-	@Input
-	abstract public Property<String> getDomain();
+  @Input
+  public abstract Property<String> getDomain();
 
-	@Input
-	abstract public Property<String> getUrl();
+  @Input
+  public abstract Property<String> getUrl();
 
-	@TaskAction
+  @TaskAction
+  public void samplePluginTasks() throws TaskExecutionException {
+    log.error("Inicio CommitLint Jira");
 
-	public void samplePluginTasks() throws TaskExecutionException {
+    try {
+      CommitLintJiraRestModel extension = new CommitLintJiraRestModel(
+        getUser().get(),
+        getPassword().get(),
+        getDomain().get(),
+        getUrl().get()
+      );
 
-		log.error("Inicio CommitLint Jira");
+      // String user = extension.getUser();
+      // String pass = extension.getPassword();
+      // String domain = extension.getDomain();
+      // String url = extension.getUrl();
+      // String infoJira = "";
+      String keyJira = "";
+      String msgfile = System.getProperty("msgfile");
+      String project = System.getProperty("user.dir");
+      File fileBranch = new File(project + "/.git/HEAD");
+      String refBranch = readFile(fileBranch);
+      CommitLintJiraRest rest = new CommitLintJiraRest(extension);
 
-		try {
+      System.out.println("Trabajando desde la rama " + refBranch);
 
-		CommitLintJiraRestModel extension = new CommitLintJiraRestModel(getUser().get(), getPassword().get(), getDomain().get(), getUrl().get()); 
+      if (!refBranch.contains("refs/heads/feature")) {
+        log.error("Este commit no es sobre una feature salimos del plugin");
+        return;
+      }
 
-		// String user = extension.getUser();
-		// String pass = extension.getPassword();
-		// String domain = extension.getDomain();
-		// String url = extension.getUrl();
-		// String infoJira = "";
-		String keyJira ="";
-		String msgfile = System.getProperty("msgfile");
-		String project = System.getProperty("user.dir");
-		File fileBranch = new File(project + "/.git/HEAD");
-		String refBranch = readFile(fileBranch);
-		CommitLintJiraRest rest = new CommitLintJiraRest(extension);
+      if (rest.authJira()) {
+        File fileCommit = new File(project + "/.git/COMMIT_EDITMSG");
 
-		System.out.println("Trabajando desde la rama " + refBranch);
+        keyJira = extractKeyJira(readFile(fileCommit));
+        if (StringUtils.isEmpty(keyJira)) {
+          throw new Exception(
+            "no se ha encontrado id de la tarea de jira, msgfile = [" +
+            msgfile +
+            "], file [" +
+            fileCommit.getAbsolutePath() +
+            "]"
+          );
+        }
 
-		if(!refBranch.contains("refs/heads/feature")){
-			log.error("Este commit no es sobre una feature salimos del plugin");
-			return;
-		}
+        if (!refBranch.contains(keyJira)) {
+          throw new Exception(
+            "no se ha encontrado la feature con formato feature/" +
+            keyJira +
+            " el commit se realiza en [" +
+            refBranch +
+            "]"
+          );
+        } else {
+          System.out.println(
+            "Successfully READ COMMIT " +
+            keyJira +
+            " para la feature " +
+            refBranch
+          );
+        }
 
-		if(rest.authJira()) {
-			
-			File fileCommit = new File(project + "/.git/COMMIT_EDITMSG");
-			
-			keyJira = extractKeyJira(readFile(fileCommit));
-			if(StringUtils.isEmpty(keyJira)){
-				throw new Exception("no se ha encontrado id de la tarea de jira, msgfile = [" + msgfile+"], file [" + fileCommit.getAbsolutePath() + "]");
-			}
+        ResponseJiraDto response = rest.getInfoJira(keyJira);
+        if (response != null) {
+          String estado = response.getFields().getStatus().getName();
+          System.out.println("Estado de la tarea " + keyJira + " = " + estado);
+          if (estado.equalsIgnoreCase("WIP")) {
+            System.out.println(
+              "Successfully completed sample Task infoJira " +
+              response.toString()
+            );
+          } else {
+            throw new Exception(
+              "La tarea " +
+              keyJira +
+              " no se encuentra en estado WIP se encuentra en " +
+              estado
+            );
+          }
+        } else {
+          log.error(
+            "Successfully completed sample Task infoJira but response is NULL WITH KEY " +
+            keyJira
+          );
+        }
+      }
 
-			
+      throw new TaskExecutionException(
+        this,
+        new Exception("Successfully completed sample Task : " + keyJira)
+      );
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
 
-			if(!refBranch.contains(keyJira)){
-				throw new Exception("no se ha encontrado la feature con formato feature/" + keyJira + " el commit se realiza en [" + refBranch + "]");
-			} else {
-					System.out.println("Successfully READ COMMIT " + keyJira + " para la feature " + refBranch);
-			}
+      throw new TaskExecutionException(
+        this,
+        new Exception("[ERROR]: Error al procesar el commit ", e)
+      );
+    }
+  }
 
-			
-			ResponseJiraDto response = rest.getInfoJira(keyJira);
-			if(response!=null) {
-				String estado = response.getFields().getStatus().getName();
-				System.out.println("Estado de la tarea " +keyJira+ " = "+ estado);
-				if(estado.equalsIgnoreCase("WIP")){
-					System.out.println("Successfully completed sample Task infoJira " + response.toString());
-				} else {
-					throw new Exception("La tarea " +keyJira+ " no se encuentra en estado WIP se encuentra en " + estado);
-				}
-				
-			} else {
-				log.error("Successfully completed sample Task infoJira but response is NULL WITH KEY "+ keyJira);
-			}
-		}
+  private String extractKeyJira(String msg) {
+    if (msg.contains(" ")) {
+      msg = msg.split(" ")[0];
+    }
+    return msg.trim().toUpperCase();
+  }
 
-			throw new TaskExecutionException(this,new Exception("Successfully completed sample Task : " + keyJira));
-		}catch(Exception e){
+  private String readFile(File file) throws IOException {
+    StringBuilder texto = new StringBuilder("");
+    // BufferedReader br = new BufferedReader(new FileReader(file));
 
-			log.error(e.getMessage(),e);
-
-			throw new TaskExecutionException(this,new Exception("[ERROR]: Error al procesar el commit ", e));
-
-		}
-	}
-
-	private String extractKeyJira(String msg){
-		if(msg.contains(" ")){
-			msg = msg.split(" ")[0];
-		}
-		return  msg.trim().toUpperCase();
-	}
-
-	private String readFile(File file) throws IOException {
-		StringBuilder  texto = new StringBuilder("");
-		// BufferedReader br = new BufferedReader(new FileReader(file));
-
-		// 	// Declaring a string variable
-		// 	String st;
-		// 	// Condition holds true till
-		// 	// there is character in a string
-		// 	while ((st = br.readLine()) != null){
-		// 			// Print the string
-		// 				texto.concat(st);
-		// 	}
-		 try {
+    // 	// Declaring a string variable
+    // 	String st;
+    // 	// Condition holds true till
+    // 	// there is character in a string
+    // 	while ((st = br.readLine()) != null){
+    // 			// Print the string
+    // 				texto.concat(st);
+    // 	}
+    try {
       Scanner myReader = new Scanner(file);
       while (myReader.hasNextLine()) {
         String data = myReader.nextLine();
         System.out.println("leyendo linea " + data);
-				if(!StringUtils.isEmpty(data)){
-					texto.append(data);
-				}
+        if (!StringUtils.isEmpty(data)) {
+          texto.append(data);
+        }
       }
-			myReader.close();
-			} catch (FileNotFoundException e) {
-				System.out.println("An error occurred.");
-				e.printStackTrace();
-			}
-			System.out.println("total lectura commit " + texto.toString());
-			return texto.toString();
-	}
+      myReader.close();
+    } catch (FileNotFoundException e) {
+      System.out.println("An error occurred.");
+      e.printStackTrace();
+    }
+    System.out.println("total lectura commit " + texto.toString());
+    return texto.toString();
+  }
 }
