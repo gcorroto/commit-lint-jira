@@ -5,6 +5,9 @@ package commint_lint_jira;
 
 import commint_lint_jira.dto.CommitLintJiraRestModel;
 import commint_lint_jira.dto.ResponseJiraDto;
+import commint_lint_jira.exception.BranchNameException;
+import commint_lint_jira.exception.CommitException;
+import commint_lint_jira.exception.JiraException;
 import commint_lint_jira.rest.CommitLintJiraRest;
 import java.io.BufferedReader;
 import java.io.File;
@@ -52,11 +55,6 @@ public abstract class CommitLintJiraPluginTask extends DefaultTask {
         getUrl().get()
       );
 
-      // String user = extension.getUser();
-      // String pass = extension.getPassword();
-      // String domain = extension.getDomain();
-      // String url = extension.getUrl();
-      // String infoJira = "";
       String keyJira = "";
       String msgfile = System.getProperty("msgfile");
       String project = System.getProperty("user.dir");
@@ -84,49 +82,12 @@ public abstract class CommitLintJiraPluginTask extends DefaultTask {
             "]"
           );
         }
-
-        if (!refBranch.contains(keyJira)) {
-          throw new Exception(
-            "no se ha encontrado la feature con formato feature/" +
-            keyJira +
-            " el commit se realiza en [" +
-            refBranch +
-            "]"
-          );
-        } else {
-          System.out.println(
-            "Successfully READ COMMIT " +
-            keyJira +
-            " para la feature " +
-            refBranch
-          );
-        }
-
+        validBranch(refBranch, keyJira);
         ResponseJiraDto response = rest.getInfoJira(keyJira);
-        if (response != null) {
-          String estado = response.getFields().getStatus().getName();
-          System.out.println("Estado de la tarea " + keyJira + " = " + estado);
-          if (estado.equalsIgnoreCase("WIP")) {
-            System.out.println(
-              "Successfully completed sample Task infoJira " +
-              response.toString()
-            );
-          } else {
-            throw new Exception(
-              "La tarea " +
-              keyJira +
-              " no se encuentra en estado WIP se encuentra en " +
-              estado
-            );
-          }
-        } else {
-          log.error(
-            "Successfully completed sample Task infoJira but response is NULL WITH KEY " +
-            keyJira
-          );
-        }
+        validResponseJira(response, keyJira);
       }
 
+      // eliminar para funcionar
       throw new TaskExecutionException(
         this,
         new Exception("Successfully completed sample Task : " + keyJira)
@@ -150,16 +111,6 @@ public abstract class CommitLintJiraPluginTask extends DefaultTask {
 
   private String readFile(File file) throws IOException {
     StringBuilder texto = new StringBuilder("");
-    // BufferedReader br = new BufferedReader(new FileReader(file));
-
-    // 	// Declaring a string variable
-    // 	String st;
-    // 	// Condition holds true till
-    // 	// there is character in a string
-    // 	while ((st = br.readLine()) != null){
-    // 			// Print the string
-    // 				texto.concat(st);
-    // 	}
     try {
       Scanner myReader = new Scanner(file);
       while (myReader.hasNextLine()) {
@@ -176,5 +127,51 @@ public abstract class CommitLintJiraPluginTask extends DefaultTask {
     }
     System.out.println("total lectura commit " + texto.toString());
     return texto.toString();
+  }
+
+  private void validBranch(String refBranch, String keyJira)
+    throws BranchNameException {
+    if (!refBranch.contains(keyJira)) {
+      throw new BranchNameException(
+        "no se ha encontrado la feature con formato feature/" +
+        keyJira +
+        " el commit se realiza en [" +
+        refBranch +
+        "]"
+      );
+    } else {
+      System.out.println(
+        "Successfully READ COMMIT " + keyJira + " para la feature " + refBranch
+      );
+    }
+  }
+
+  private void validResponseJira(ResponseJiraDto response, String keyJira)
+    throws JiraException, CommitException {
+    if (response != null) {
+      String estado = response.getFields().getStatus().getName();
+      System.out.println("Estado de la tarea " + keyJira + " = " + estado);
+      if (estado.equalsIgnoreCase("WIP")) {
+        System.out.println(
+          "Successfully completed sample Task infoJira " + response.toString()
+        );
+      } else {
+        throw new JiraException(
+          "La tarea " +
+          keyJira +
+          " no se encuentra en estado WIP se encuentra en " +
+          estado
+        );
+      }
+    } else {
+      // log.error(
+      //   "Successfully completed sample Task infoJira but response is NULL WITH KEY " +
+      //   keyJira
+      // );
+      throw new CommitException(
+        "Successfully completed sample Task infoJira but response is NULL WITH KEY " +
+        keyJira
+      );
+    }
   }
 }
